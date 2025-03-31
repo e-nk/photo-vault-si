@@ -6,82 +6,53 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        background: 'var(--background)',
-        foreground: 'var(--foreground)',
-        primary: 'var(--primary)',
-        'primary-foreground': 'var(--primary-foreground)',
-        secondary: 'var(--secondary)',
-        'secondary-foreground': 'var(--secondary-foreground)',
-        border: 'var(--border)',
-        'accent-indigo': 'var(--accent-indigo)',
-        'accent-indigo-light': 'var(--accent-indigo-light)',
-        'accent-rose': 'var(--accent-rose)',
-        'accent-rose-light': 'var(--accent-rose-light)',
-        'accent-violet': 'var(--accent-violet)',
-        'accent-amber': 'var(--accent-amber)',
-        'accent-cyan': 'var(--accent-cyan)',
-        'text-primary': 'var(--text-primary)',
-        'text-secondary': 'var(--text-secondary)',
-        'text-muted': 'var(--text-muted)',
-        overlay: 'var(--overlay)',
-      },
-      maxWidth: {
-        '8xl': '88rem', // 1408px - larger boxed layout
-        '9xl': '96rem', // 1536px - even larger if needed
+        // Main theme colors
+        photo: {
+          primary: '#030303',      // Main dark background
+          secondary: '#ffffff',    // White
+          purple: '#a390f4',       // Purple for logo
+          darkgray: '#1d1d1d',     // Dark gray for UI elements
+          
+          // Gradient colors
+          blue: '#8ba3e8',         // Light blue for gradient
+          pink: '#e8a5c9',         // Pink for gradient
+          
+          // Accent colors
+          indigo: '#6366f1',       // Indigo accent
+          rose: '#f43f5e',         // Rose accent
+          violet: '#8b5cf6',       // Violet accent
+          amber: '#f59e0b',        // Amber accent
+          cyan: '#06b6d4',         // Cyan accent
+          
+          // UI element colors
+          border: 'rgba(255, 255, 255, 0.1)',  // Border color with 10% opacity
+          panel: 'rgba(255, 255, 255, 0.05)',  // Panel background with 5% opacity
+        },
+        
+        // Keep the standard gray scale
+        gray: {
+          100: '#f7fafc',
+          200: '#edf2f7',
+          300: '#e2e8f0',
+          400: '#cbd5e0',
+          500: '#a0aec0',
+          600: '#718096',
+          700: '#4a5568',
+          800: '#2d3748',
+          900: '#1a202c',
+        },
       },
       fontFamily: {
         lora: ['Lora', 'serif'],
       },
-      backgroundImage: {
-        'hero-gradient': 'linear-gradient(to bottom right, rgba(99, 102, 241, 0.05), transparent, rgba(244, 63, 94, 0.05))',
-        'text-gradient': 'linear-gradient(to right, var(--accent-indigo-light), rgba(255, 255, 255, 0.9), var(--accent-rose-light))',
-        'text-gradient-white': 'linear-gradient(to bottom, white, rgba(255, 255, 255, 0.8))',
-      },
-      borderRadius: {
-        'lg': 'var(--radius)',
-        'xl': 'calc(var(--radius) + 0.5rem)',
-        '2xl': 'calc(var(--radius) + 1rem)',
-      },
-      animation: {
-        'gradient-x': 'gradient-x 15s ease infinite',
-        'fade-in': 'fade-in 0.5s ease-out',
-        'float': 'float 12s ease-in-out infinite',
-      },
-      keyframes: {
-        'gradient-x': {
-          '0%, 100%': {
-            'background-size': '200% 200%',
-            'background-position': 'left center',
-          },
-          '50%': {
-            'background-size': '200% 200%',
-            'background-position': 'right center',
-          },
-        },
-        'fade-in': {
-          '0%': {
-            opacity: '0',
-          },
-          '100%': {
-            opacity: '1',
-          },
-        },
-        'float': {
-          '0%, 100%': {
-            transform: 'translateY(0px)',
-          },
-          '50%': {
-            transform: 'translateY(15px)',
-          },
-        },
-      },
     },
   },
-  plugins: [],
+  plugins: [
+    
+  ],
 }
 
 export default config

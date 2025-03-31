@@ -1,7 +1,9 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-/* Remove unsupported directives */
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+@config "../../tailwind.config.ts";
 
 /* Font declarations for Lora */
 @font-face {
@@ -44,156 +46,169 @@
   font-display: swap;
 }
 
-:root {
-  /* Base colors */
-  --background: oklch(0.01 0 0);        /* #030303 */
-  --foreground: oklch(1 0 0);           /* #FFFFFF */
-  
-  /* Premium colors from shape-landing-hero */
-  --primary: oklch(0.01 0 0);           /* #030303 */
-  --primary-foreground: oklch(1 0 0);   /* #FFFFFF */
-  --secondary: oklch(0.12 0 0);         /* #121212 */
-  --secondary-foreground: oklch(1 0 0); /* #FFFFFF */
-  
-  /* Accent colors */
-  --accent-indigo: oklch(0.55 0.28 274);          /* indigo-500 */
-  --accent-indigo-light: oklch(0.85 0.12 274);    /* indigo-300 */
-  --accent-rose: oklch(0.66 0.29 14);             /* rose-500 */
-  --accent-rose-light: oklch(0.85 0.14 14);       /* rose-300 */
-  --accent-violet: oklch(0.58 0.25 293);          /* violet-500 */
-  --accent-amber: oklch(0.8 0.16 77);             /* amber-500 */
-  --accent-cyan: oklch(0.7 0.18 196);             /* cyan-500 */
-  
-  /* Text colors */
-  --text-primary: oklch(1 0 0);                   /* white */
-  --text-secondary: oklch(0.8 0 0 / 0.6);         /* white/60 */
-  --text-muted: oklch(0.7 0 0 / 0.4);             /* white/40 */
-  
-  /* Border & overlay */
-  --border: oklch(1 0 0 / 0.08);                  /* white/[0.08] */
-  --overlay: oklch(0.01 0 0 / 0.8);               /* #030303/80 */
-  --radius: 0.5rem;
+/* Base styles */
+@layer base {
+  body {
+    @apply font-lora text-white bg-primary;
+  }
 }
 
+:root {
+  /* Main colors - dark by default */
+  --background: oklch(0.07 0 0); /* #030303 dark background */
+  --foreground: oklch(1 0 0); /* White text */
+  --card: oklch(0.1 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.07 0 0); /* #030303 dark background */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.2 0 0); /* Slightly lighter dark */
+  --secondary-foreground: oklch(0.8 0 0); /* Light gray text */
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.6 0 0); /* 60% white/gray */
+  --accent: oklch(0.3 0 0);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.3 0.05 0); /* Subtle dark border */
+  --input: oklch(0.2 0 0);
+  --ring: oklch(0.4 0.1 0);
+  
+  /* Gradient colors for text and UI */
+  --gradient-blue: oklch(0.65 0.2 265); /* #8ba3e8 - light blue */
+  --gradient-pink: oklch(0.75 0.2 0); /* #e8a5c9 - pink */
+  
+  /* Accent colors for shapes */
+  --accent-indigo: oklch(0.6 0.22 280); /* #6366f1 */
+  --accent-rose: oklch(0.65 0.26 15); /* #f43f5e */
+  --accent-violet: oklch(0.55 0.25 290); /* #8b5cf6 */
+  --accent-amber: oklch(0.75 0.2 80); /* #f59e0b */
+  --accent-cyan: oklch(0.7 0.2 200); /* #06b6d4 */
+  
+  /* Chart colors */
+  --chart-1: var(--accent-indigo);
+  --chart-2: var(--accent-cyan);
+  --chart-3: var(--accent-violet);
+  --chart-4: var(--accent-amber);
+  --chart-5: var(--accent-rose);
+  
+  --radius: 0.625rem;
+  
+  /* Sidebar colors - darker than main */
+  --sidebar: oklch(0.05 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: var(--accent-indigo);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.15 0 0);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.2 0 0);
+  --sidebar-ring: oklch(0.3 0.1 0);
+}
+
+/* No need for separate .dark class since we're using dark by default */
 .dark {
-  --background: oklch(0.01 0 0);       /* #030303 */
-  --foreground: oklch(1 0 0);          /* #FFFFFF */
+  --background: oklch(0.07 0 0); /* #030303 dark background */
+  --foreground: oklch(1 0 0); /* White text */
+  --card: oklch(0.1 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.07 0 0); /* #030303 dark background */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.2 0 0); /* Slightly lighter dark */
+  --secondary-foreground: oklch(0.8 0 0); /* Light gray text */
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.6 0 0); /* 60% white/gray */
+  --accent: oklch(0.3 0 0);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.3 0.05 0); /* Subtle dark border */
+  --input: oklch(0.2 0 0);
+  --ring: oklch(0.4 0.1 0);
+  
+  /* Gradient colors for text and UI */
+  --gradient-blue: oklch(0.65 0.2 265); /* #8ba3e8 - light blue */
+  --gradient-pink: oklch(0.75 0.2 0); /* #e8a5c9 - pink */
+  
+  /* Accent colors for shapes */
+  --accent-indigo: oklch(0.6 0.22 280); /* #6366f1 */
+  --accent-rose: oklch(0.65 0.26 15); /* #f43f5e */
+  --accent-violet: oklch(0.55 0.25 290); /* #8b5cf6 */
+  --accent-amber: oklch(0.75 0.2 80); /* #f59e0b */
+  --accent-cyan: oklch(0.7 0.2 200); /* #06b6d4 */
+  
+  /* Chart colors */
+  --chart-1: var(--accent-indigo);
+  --chart-2: var(--accent-cyan);
+  --chart-3: var(--accent-violet);
+  --chart-4: var(--accent-amber);
+  --chart-5: var(--accent-rose);
+  
+  --sidebar: oklch(0.05 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: var(--accent-indigo);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.15 0 0);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.2 0 0);
+  --sidebar-ring: oklch(0.3 0.1 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Adding gradient text variables */
+  --color-gradient-blue: var(--gradient-blue);
+  --color-gradient-pink: var(--gradient-pink);
+  --color-accent-indigo: var(--accent-indigo);
+  --color-accent-rose: var(--accent-rose);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-cyan: var(--accent-cyan);
 }
 
 @layer base {
-	* {
-		border: var(--border);
-		outline: none;
-	}
-	
-	body {
-		background-color: var(--background);
-		color: var(--foreground);
-		font-family: 'Lora', serif;
-	}
-
-	h1, h2, h3, h4, h5, h6 {
-		font-family: 'Lora', serif;
-		font-weight: 600;
-	}
-}
-
-@layer components {
-	.elegant-badge {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.25rem 0.75rem;
-		border-radius: 9999px;
-		background-color: rgba(255, 255, 255, 0.03);
-		border: 1px solid rgba(255, 255, 255, 0.08);
-	}
-
-	.elegant-shape {
-		position: relative;
-		border-radius: 9999px;
-		background: linear-gradient(to right, transparent, transparent);
-		backdrop-filter: blur(2px);
-		border: 2px solid rgba(255, 255, 255, 0.15);
-		box-shadow: 0 8px 32px 0 rgba(255, 255, 255, 0.1);
-	}
-	
-	.gradient-text {
-		background-clip: text;
-		color: transparent;
-		background-image: linear-gradient(to right, #A5B4FC, rgba(255, 255, 255, 0.9), #FDA4AF);
-	}
-	
-	.gradient-text-white {
-		background-clip: text;
-		color: transparent;
-		background-image: linear-gradient(to bottom, white, rgba(255, 255, 255, 0.8));
-	}
-	
-	.premium-card {
-		background-color: var(--secondary);
-		border-radius: 0.75rem;
-		box-shadow: 0 8px 32px 0 rgba(255, 255, 255, 0.1);
-		border: 1px solid var(--border);
-		padding: 1.5rem;
-	}
-	
-	.btn-primary {
-		background-color: var(--accent-indigo);
-		color: white;
-		font-weight: 500;
-		padding: 0.5rem 1rem;
-		border-radius: 0.5rem;
-		transition: background-color 0.2s;
-	}
-	
-	.btn-primary:hover {
-		background-color: color-mix(in oklab, var(--accent-indigo) 90%, black);
-	}
-	
-	.btn-outline {
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		background-color: rgba(255, 255, 255, 0.03);
-		color: white;
-		font-weight: 500;
-		padding: 0.5rem 1rem;
-		border-radius: 0.5rem;
-		transition: background-color 0.2s;
-	}
-	
-	.btn-outline:hover {
-		background-color: rgba(255, 255, 255, 0.08);
-	}
-	
-	.nav-link {
-		color: var(--text-secondary);
-		transition: color 0.2s;
-	}
-	
-	.nav-link:hover {
-		color: var(--text-primary);
-	}
-}
-  
-  
-  .nav-link:hover {
-    color: var(--text-primary);
+  * {
+    @apply border-border outline-ring/50;
   }
-
-/* Custom scrollbar for dark premium look */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--primary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--secondary);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-indigo);
+  body {
+    @apply bg-background text-foreground;
+  }
 }
