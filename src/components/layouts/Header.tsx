@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Container from './Container';
 import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
+import { Home } from 'lucide-react';
 
 const Header = () => {
-	const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   
   // Handle scroll events to add background when scrolled
@@ -33,9 +34,18 @@ const Header = () => {
             <span className="text-2xl font-bold text-photo-purple">Photo-Vault</span>
           </Link>
 
-          {/* Login Button - Will be replaced with Clerk auth */}
-          {/* Auth Buttons */}
-          <div >
+          {/* Navigation and Auth */}
+          <div className="flex items-center gap-4">
+            {isSignedIn && (
+              <Link 
+                href="/home" 
+                className="flex items-center gap-2 px-4 py-2 text-photo-secondary hover:text-photo-indigo transition-colors"
+              >
+                <Home className="h-4 w-4" />
+                <span>Dashboard</span>
+              </Link>
+            )}
+            
             {isSignedIn ? (
               <UserButton afterSignOutUrl="/" />
             ) : (
