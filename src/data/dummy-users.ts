@@ -1,5 +1,3 @@
-// File path: /data/dummy-users.ts
-
 export interface User {
   id: number;
   name: string;
