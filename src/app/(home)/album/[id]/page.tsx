@@ -1,26 +1,21 @@
+// File path: /app/(home)/album/[id]/page.tsx
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Album } from '@/data/dummy-albums';
+import { Album, getAllDummyAlbums } from '@/data/dummy-albums';
+import { MyAlbum, getMyAlbumById, getPhotosForMyAlbum, updateAlbumDetails } from '@/data/my-albums';
 import { User } from '@/data/dummy-users';
-import { Photo } from '@/data/dummy-photos';
-import { AlbumHeader } from '@/components/album/AlbumHeader';
-import { PhotoGrid } from '@/components/album/PhotoGrid';
-import { getDummyPhotosForAlbum } from '@/data/dummy-photos';
-import { getAllDummyAlbums } from '@/data/dummy-albums';
+import { Photo, getDummyPhotosForAlbum } from '@/data/dummy-photos';
+import { notFound, useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { dummyUsers } from '@/data/dummy-users';
-import { notFound } from 'next/navigation';
+import { AlbumHeader } from '@/components/shared/AlbumHeader';
+import { PhotoGrid } from '@/components/shared/PhotoGrid';
+import { UploadPhotosDialog } from '@/components/my-albums/UploadPhotosDialog';
+import { toast } from 'sonner';
 import Container from '@/components/common/Container';
-import { Input } from '@/components/ui/input';
-import { Search, Calendar, Filter, Download, SortDesc } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Check, Trash } from 'lucide-react';
 
 interface AlbumPageProps {
   params: {
@@ -28,27 +23,37 @@ interface AlbumPageProps {
   };
 }
 
-type SortOption = 'newest' | 'oldest' | 'most-liked' | 'most-commented';
-
 export default function AlbumPage({ params }: AlbumPageProps) {
   const albumId = parseInt(params.id, 10);
+  const router = useRouter();
+  const { user: currentUser, isSignedIn } = useUser();
   
-  const [album, setAlbum] = useState<Album | null>(null);
+  const [album, setAlbum] = useState<Album | MyAlbum | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState<SortOption>('newest');
-
+  const [isOwner, setIsOwner] = useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  
   useEffect(() => {
-    // Simulate API call to fetch album, user, and photos
     const fetchData = async () => {
       setIsLoading(true);
       
-      // Delay to simulate network request
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Check my albums first (if user is logged in)
+      if (isSignedIn) {
+        const myAlbum = getMyAlbumById(albumId);
+        if (myAlbum) {
+          setAlbum(myAlbum);
+          setIsOwner(true);
+          setUser(dummyUsers.find(u => u.id === 1) || null); // Assuming current user is user 1
+          const albumPhotos = getPhotosForMyAlbum(albumId);
+          setPhotos(albumPhotos);
+          setIsLoading(false);
+          return;
+        }
+      }
       
+      // If not found in my albums or not logged in, check public albums
       const allAlbums = getAllDummyAlbums();
       const foundAlbum = allAlbums.find(a => a.id === albumId);
       
@@ -57,150 +62,181 @@ export default function AlbumPage({ params }: AlbumPageProps) {
       }
       
       setAlbum(foundAlbum);
+      setIsOwner(false);
       
-      const foundUser = dummyUsers.find(u => u.id === foundAlbum.userId);
-      if (foundUser) {
-        setUser(foundUser);
+      const albumOwner = dummyUsers.find(u => u.id === foundAlbum.userId);
+      if (albumOwner) {
+        setUser(albumOwner);
       }
       
       const albumPhotos = getDummyPhotosForAlbum(albumId);
       setPhotos(albumPhotos);
-      setFilteredPhotos(albumPhotos);
       
       setIsLoading(false);
     };
     
     fetchData();
-  }, [albumId]);
+  }, [albumId, isSignedIn]);
 
-  // Filter and sort photos when search term or sort option changes
-  useEffect(() => {
-    if (photos.length === 0) return;
-
-    // Filter by search term
-    let filtered = photos;
-    if (searchTerm) {
-      filtered = photos.filter(photo => 
-        photo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (photo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-      );
-    }
-
-    // Sort based on selected option
-    filtered = [...filtered].sort((a, b) => {
-      switch (sortOption) {
-        case 'newest':
-          return new Date(b.dateUploaded).getTime() - new Date(a.dateUploaded).getTime();
-        case 'oldest':
-          return new Date(a.dateUploaded).getTime() - new Date(b.dateUploaded).getTime();
-        case 'most-liked':
-          return b.likes - a.likes;
-        case 'most-commented':
-          return b.comments - a.comments;
-        default:
-          return 0;
+  const handleUpdateAlbum = async (updates: Partial<MyAlbum>) => {
+    if (!album || !isOwner) return;
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    if ('isPrivate' in album) {
+      const updatedAlbum = updateAlbumDetails(albumId, updates);
+      if (updatedAlbum) {
+        setAlbum(updatedAlbum);
       }
+    }
+    
+    toast.success('Album updated', {
+      description: 'Your changes have been saved.',
+      icon: <Check className="h-4 w-4" />,
+      position: 'bottom-right',
     });
+  };
+  
+  const handleDeleteAlbum = async () => {
+    if (!album || !isOwner) return;
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    toast('Album deleted', {
+      description: `"${album.title}" has been permanently deleted.`,
+      icon: <Trash className="h-4 w-4" />,
+      position: 'bottom-right',
+    });
+    
+    // Navigate back to my albums
+    router.push('/my-albums');
+  };
+  
+  const handlePhotoDelete = async (photoId: number) => {
+    if (!isOwner) return;
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Remove photo from state
+    setPhotos(prev => prev.filter(p => p.id !== photoId));
+    
+    // Update album photo count
+    if (album && 'isPrivate' in album) {
+      const updatedAlbum = {
+        ...album,
+        photoCount: album.photoCount - 1,
+        dateUpdated: new Date().toISOString().split('T')[0]
+      };
+      setAlbum(updatedAlbum);
+    }
+    
+    toast('Photo deleted', {
+      description: 'The photo has been removed from this album.',
+      icon: <Trash className="h-4 w-4" />,
+      position: 'bottom-right',
+    });
+  };
+  
+  const handleMultiDelete = async (photoIds: number[]) => {
+    if (!isOwner || photoIds.length === 0) return;
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    // Remove photos from state
+    setPhotos(prev => prev.filter(p => !photoIds.includes(p.id)));
+    
+    // Update album photo count
+    if (album && 'isPrivate' in album) {
+      const updatedAlbum = {
+        ...album,
+        photoCount: album.photoCount - photoIds.length,
+        dateUpdated: new Date().toISOString().split('T')[0]
+      };
+      setAlbum(updatedAlbum);
+    }
+    
+    toast('Photos deleted', {
+      description: `${photoIds.length} photos have been removed from this album.`,
+      icon: <Trash className="h-4 w-4" />,
+      position: 'bottom-right',
+    });
+  };
+  
+  const handleUploadComplete = (newPhotos: number) => {
+    if (!album || !isOwner) return;
+    
+    // Update album photo count
+    if ('isPrivate' in album) {
+      const updatedAlbum = {
+        ...album,
+        photoCount: album.photoCount + newPhotos,
+        dateUpdated: new Date().toISOString().split('T')[0]
+      };
+      setAlbum(updatedAlbum);
+    }
+    
+    // Simulate fetching updated photos
+    const updatedPhotos = getPhotosForMyAlbum(albumId);
+    setPhotos(updatedPhotos);
+    
+    toast.success('Photos uploaded', {
+      description: `${newPhotos} photos have been added to this album.`,
+      icon: <Check className="h-4 w-4" />,
+      position: 'bottom-right',
+    });
+  };
 
-    setFilteredPhotos(filtered);
-  }, [photos, searchTerm, sortOption]);
-
-  // Show loading state
-  if (isLoading || !album || !user) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-photo-primary animate-pulse">
-        <div className="pt-8 pb-4 border-b border-photo-border/20">
-          <Container>
-            <div className="h-8 w-32 bg-photo-darkgray/30 mb-6 rounded" />
-            <div className="h-10 w-64 bg-photo-darkgray/30 mb-6 rounded" />
-            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start sm:items-center border-t border-photo-border/10 pt-6">
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-full bg-photo-darkgray/30 mr-3" />
-                <div>
-                  <div className="h-4 w-24 bg-photo-darkgray/30 mb-2 rounded" />
-                  <div className="h-3 w-16 bg-photo-darkgray/30 rounded" />
-                </div>
-              </div>
-            </div>
-          </Container>
-        </div>
+      <div className="min-h-screen bg-photo-primary animate-pulse flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full border-4 border-photo-indigo/30 border-t-transparent animate-spin"></div>
       </div>
     );
   }
 
+  if (!album || !user) {
+    return notFound();
+  }
+
   return (
-    <div className="min-h-screen bg-photo-primary pb-16">
-      {/* Album Header */}
+    <div className="min-h-screen bg-photo-primary">
       <AlbumHeader 
-        album={album} 
-        user={user} 
-        totalPhotos={photos.length} 
+        album={album}
+        user={user}
+        totalPhotos={photos.length}
+        isOwner={isOwner}
+        backUrl={isOwner ? "/my-albums" : `/user/${user.id}`}
+        onUpdate={isOwner ? handleUpdateAlbum : undefined}
+        onDelete={isOwner ? handleDeleteAlbum : undefined}
+        onUpload={isOwner ? () => setIsUploadDialogOpen(true) : undefined}
       />
       
-      {/* Photos Section */}
-      <div className="py-8">
-        <Container>
-          {/* Filters and Search */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-photo-secondary/50 h-4 w-4" />
-              <Input
-                placeholder="Search photos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-photo-darkgray/30 border-photo-border text-photo-secondary"
-              />
-            </div>
-            
-            <div className="flex gap-2 items-center ml-auto">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <SortDesc className="h-4 w-4 mr-1" />
-                    Sort
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuRadioGroup value={sortOption} onValueChange={val => setSortOption(val as SortOption)}>
-                    <DropdownMenuRadioItem value="newest">Newest first</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="oldest">Oldest first</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="most-liked">Most liked</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="most-commented">Most commented</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <Filter className="h-4 w-4 mr-1" />
-                    Filter
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuRadioItem value="all">All photos</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="with-description">With description</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="most-engagement">Most engagement</DropdownMenuRadioItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Button variant="outline" size="sm" className="gap-1">
-                <Download className="h-4 w-4 mr-1" />
-                Download All
-              </Button>
-            </div>
-          </div>
-          
-          {/* Results count */}
-          <p className="text-photo-secondary/60 text-sm mb-6">
-            Showing {filteredPhotos.length} photos
-            {searchTerm && ` matching "${searchTerm}"`}
-          </p>
-          
-          {/* Photos Grid */}
-          <PhotoGrid photos={filteredPhotos} isLoading={isLoading} />
-        </Container>
-      </div>
+      <Container className="py-8">
+        <PhotoGrid 
+          photos={photos}
+          isLoading={isLoading}
+          isOwner={isOwner}
+          onPhotoDelete={isOwner ? handlePhotoDelete : undefined}
+          onMultiDelete={isOwner ? handleMultiDelete : undefined}
+          onUploadClick={isOwner ? () => setIsUploadDialogOpen(true) : undefined}
+          emptyMessage={isOwner ? "This album is empty" : "No photos in this album yet"}
+          emptyActionLabel={isOwner ? "Upload Photos" : undefined}
+        />
+      </Container>
+      
+      {/* Upload Photos Dialog - Only for owners */}
+      {isOwner && album && 'isPrivate' in album && (
+        <UploadPhotosDialog 
+          isOpen={isUploadDialogOpen}
+          onClose={() => setIsUploadDialogOpen(false)}
+          album={album}
+          onUploadComplete={() => handleUploadComplete(Math.floor(Math.random() * 5) + 1)}
+        />
+      )}
     </div>
   );
 }

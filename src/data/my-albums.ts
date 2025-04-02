@@ -1,6 +1,5 @@
 import { Album } from '@/data/dummy-albums';
-import { Photo } from '@/data/dummy-photos';
-import { getDummyPhotosForAlbum } from '@/data/dummy-photos';
+import { Photo, getDummyPhotosForAlbum } from '@/data/dummy-photos';
 
 // Define a more detailed album type for the My Albums page
 export interface MyAlbum extends Album {
@@ -17,7 +16,7 @@ export const getMyAlbums = (): MyAlbum[] => {
       id: 901,
       userId: 1, // Current user ID
       title: "Landscapes 2023",
-      coverImage: "/api/placeholder/300/200",
+      coverImage: "/api/placeholder/1.jpg",
       photoCount: 16,
       dateCreated: "2023-09-15",
       isPrivate: false,
@@ -76,8 +75,11 @@ export const getMyAlbumById = (albumId: number): MyAlbum | undefined => {
   return albums.find(album => album.id === albumId);
 };
 
-// Get photos for a specific album with extended functionality
+// Get photos for a specific album owned by the current user
+// Simply reuse the existing function as these are mock data
 export const getPhotosForMyAlbum = (albumId: number): Photo[] => {
+  // Reuse the existing function since we're working with mock data
+  // In a real app, you'd have a separate endpoint for user-owned albums
   return getDummyPhotosForAlbum(albumId);
 };
 

@@ -66,7 +66,7 @@ export function MyAlbumCard({ album, onUpdate, onDelete, onAddPhotos }: MyAlbumC
   };
   
   const navigateToAlbum = () => {
-    router.push(`/my-albums/${album.id}`);
+    router.push(`/album/${album.id}`);
   };
 
   return (
