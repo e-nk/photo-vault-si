@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Container from './Container';
+import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
 
 const Header = () => {
+	const { isSignedIn } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   
   // Handle scroll events to add background when scrolled
@@ -32,9 +34,18 @@ const Header = () => {
           </Link>
 
           {/* Login Button - Will be replaced with Clerk auth */}
-          <button className="px-4 py-2 rounded-md bg-photo-secondary text-photo-primary hover:bg-photo-secondary/90 transition-colors font-medium">
-            Login
-          </button>
+          {/* Auth Buttons */}
+          <div >
+            {isSignedIn ? (
+              <UserButton afterSignOutUrl="/" />
+            ) : (
+              <SignInButton mode="modal">
+                <button className="px-4 py-2 text-black bg-photo-secondary rounded-md">
+                  Login
+                </button>
+              </SignInButton>
+            )}
+          </div>
         </div>
       </Container>
     </header>
