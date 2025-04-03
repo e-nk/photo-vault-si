@@ -1,22 +1,33 @@
+// components/home/UserCard.tsx
 import React from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Album, Users } from 'lucide-react';
 import Link from 'next/link';
-import { User } from '@/data/dummy-users';
 
-type UserCardProps = Omit<User, 'id'> & {
-  id: number;
+type UserCardProps = {
+  id: string | number;
+  name?: string;
+  username?: string;
+  email?: string;
+  albumCount?: number;
+  avatar?: string;
 };
 
 export const UserCard = ({
   id,
-  name,
-  username,
-  email,
-  albumCount,
+  name = 'Unknown User',
+  username = 'user',
+  email = '',
+  albumCount = 0,
   avatar
 }: UserCardProps) => {
+  // Safely get initials for avatar fallback
+  const getInitials = () => {
+    if (!name) return 'NU';
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
     <Link href={`/user/${id}`}>
       <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg border-photo-border bg-photo-darkgray/20 group hover:border-photo-indigo/30 hover:scale-[1.02]">
@@ -27,7 +38,7 @@ export const UserCard = ({
             <Avatar className="h-12 w-12 border-2 border-photo-indigo/30">
               <AvatarImage src={avatar} alt={name} />
               <AvatarFallback className="bg-photo-indigo/20 text-photo-secondary">
-                {name.substring(0, 2).toUpperCase()}
+                {getInitials()}
               </AvatarFallback>
             </Avatar>
             <div>
