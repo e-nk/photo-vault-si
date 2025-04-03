@@ -1,91 +1,109 @@
+// app/(home)/user/[id]/page.tsx
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { User } from '@/data/dummy-users';
-import { UserProfileHeader } from '@/components/user/UserProfileHeader';
-import { UserAlbumsSection } from '@/components/user/UserAlbumsSection';
-import { getDummyAlbumsForUser } from '@/data/dummy-albums';
-import { dummyUsers } from '@/data/dummy-users';
-import { Album } from '@/data/dummy-albums';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
+import Container from '@/components/common/Container';
+import { AlbumHeader } from '@/components/shared/AlbumHeader';
+import { PhotoGrid } from '@/components/shared/PhotoGrid';
 
-interface UserPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function UserPage({ params }: UserPageProps) {
-  const userId = parseInt(params.id, 10);
-  const router = useRouter();
+export default function UserPage({ params }) {
+  const userId = params.id;
   
-  const [user, setUser] = useState<User | null>(null);
-  const [albums, setAlbums] = useState<Album[]>([]);
+  const [user, setUser] = useState(null);
+  const [albums, setAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  
   useEffect(() => {
-    // Simulate API call to fetch user and albums
-    const fetchData = async () => {
+    async function fetchUserData() {
       setIsLoading(true);
       
-      // Delay to simulate network request
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const foundUser = dummyUsers.find(u => u.id === userId);
-      if (!foundUser) {
+      // Fetch user
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (userError || !userData) {
         return notFound();
       }
       
-      setUser(foundUser);
+      setUser(userData);
       
-      const userAlbums = getDummyAlbumsForUser(userId);
-      setAlbums(userAlbums);
-      
+      // Fetch user's albums
+      const { data: albumsData } = await supabase
+        .from('albums')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_private', false) // Only fetch public albums
+        .order('updated_at', { ascending: false });
+        
+      setAlbums(albumsData || []);
       setIsLoading(false);
-    };
+    }
     
-    fetchData();
+    fetchUserData();
   }, [userId]);
 
-  // Calculate total photos count
-  const totalPhotos = albums.reduce((sum, album) => sum + album.photoCount, 0);
-
-  // Show loading state
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-photo-primary animate-pulse">
-        <div className="pb-6 pt-10 border-b border-photo-border/20">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row items-start gap-8">
-              <div className="h-32 w-32 rounded-full bg-photo-darkgray/30" />
-              <div className="flex-1">
-                <div className="h-8 w-48 bg-photo-darkgray/30 mb-4 rounded" />
-                <div className="h-4 w-32 bg-photo-darkgray/30 mb-2 rounded" />
-                <div className="h-4 w-64 bg-photo-darkgray/30 rounded" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <div>Loading...</div>;
   }
 
-  // If user not found in useEffect, the notFound function will be called
   if (!user) {
-    return null;
+    return notFound();
   }
 
   return (
-    <div className="min-h-screen bg-photo-primary pb-16">
-      {/* User Profile Header */}
-      <UserProfileHeader 
-        user={user} 
-        albumCount={albums.length} 
-        totalPhotos={totalPhotos} 
-      />
+    <div className="min-h-screen bg-photo-primary">
+      {/* User profile section */}
+      <div className="py-8 border-b border-photo-border/20">
+        <Container>
+          <div className="flex items-center gap-4">
+            <img 
+              src={user.avatar_url || '/placeholder-avatar.jpg'} 
+              alt={user.full_name} 
+              className="w-20 h-20 rounded-full object-cover"
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-photo-secondary">{user.full_name}</h1>
+              <p className="text-photo-secondary/60">@{user.username}</p>
+            </div>
+          </div>
+        </Container>
+      </div>
       
-      {/* User Albums Section */}
-      <UserAlbumsSection albums={albums} />
+      {/* Albums section */}
+      <div className="py-8">
+        <Container>
+          <h2 className="text-xl font-semibold text-photo-secondary mb-6">Albums</h2>
+          
+          {albums.length === 0 ? (
+            <p className="text-photo-secondary/60">This user hasn't shared any albums yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {albums.map(album => (
+                <div 
+                  key={album.id}
+                  className="bg-photo-darkgray/20 border border-photo-border rounded-lg overflow-hidden"
+                >
+                  <img 
+                    src={album.cover_photo_url || '/placeholder-album.jpg'} 
+                    alt={album.title}
+                    className="w-full aspect-video object-cover"
+                  />
+                  <div className="p-4">
+                    <h3 className="font-medium text-photo-secondary">{album.title}</h3>
+                    <p className="text-photo-secondary/60 text-sm mt-1">{album.photo_count} photos</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Container>
+      </div>
     </div>
   );
 }

@@ -1,53 +1,56 @@
+// app/(home)/my-albums/page.tsx
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import Container from '@/components/common/Container';
 import { MyAlbumsHeader } from '@/components/my-albums/MyAlbumsHeader';
 import { MyAlbumsGrid } from '@/components/my-albums/MyAlbumsGrid';
-import { MyAlbumsEmptyState } from '@/components/my-albums/MyAlbumsEmptyState';
 import { UploadPhotosDialog } from '@/components/my-albums/UploadPhotosDialog';
-import { MyAlbum, getMyAlbums, createAlbum, getMyAlbumById, updateAlbumDetails } from '@/data/my-albums';
-import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
-import { Check, AlertTriangle } from 'lucide-react';
-
-type SortOption = 'newest' | 'oldest' | 'a-z' | 'z-a' | 'most-photos' | 'recently-updated';
+import { supabase } from '@/lib/supabase/client';
+import { createAlbum, updateAlbum, deleteAlbum } from '@/lib/api';
 
 export default function MyAlbumsPage() {
-  const { user } = useUser();
-  
-  const [albums, setAlbums] = useState<MyAlbum[]>([]);
-  const [filteredAlbums, setFilteredAlbums] = useState<MyAlbum[]>([]);
+  const [albums, setAlbums] = useState([]);
+  const [filteredAlbums, setFilteredAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOption, setSortOption] = useState<SortOption>('recently-updated');
-  
-  // Upload dialog state
+  const [sortOption, setSortOption] = useState('recently-updated');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [selectedAlbum, setSelectedAlbum] = useState<MyAlbum | null>(null);
-  
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
+
   useEffect(() => {
-    const fetchAlbums = async () => {
-      setIsLoading(true);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const myAlbums = getMyAlbums();
-      setAlbums(myAlbums);
-      setFilteredAlbums(sortAlbums(myAlbums, sortOption));
-      
-      setIsLoading(false);
-    };
-    
     fetchAlbums();
   }, []);
-  
-  // Filter and sort albums when search term or sort option changes
+
+  async function fetchAlbums() {
+    setIsLoading(true);
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+    
+    const { data, error } = await supabase
+      .from('albums')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+      
+    if (!error) {
+      setAlbums(data || []);
+      setFilteredAlbums(sortAlbums(data || [], sortOption));
+    }
+    
+    setIsLoading(false);
+  }
+
+  // Filter and sort albums
   useEffect(() => {
     if (albums.length === 0) return;
     
-    // Filter by search term
     let filtered = albums;
     if (searchTerm) {
       filtered = albums.filter(album => 
@@ -56,160 +59,133 @@ export default function MyAlbumsPage() {
       );
     }
     
-    // Sort filtered albums
     setFilteredAlbums(sortAlbums(filtered, sortOption));
   }, [albums, searchTerm, sortOption]);
-  
-  const sortAlbums = (albumsToSort: MyAlbum[], option: SortOption): MyAlbum[] => {
+
+  const sortAlbums = (albumsToSort, option) => {
     return [...albumsToSort].sort((a, b) => {
       switch (option) {
         case 'newest':
-          return new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime();
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'oldest':
-          return new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime();
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         case 'a-z':
           return a.title.localeCompare(b.title);
         case 'z-a':
           return b.title.localeCompare(a.title);
         case 'most-photos':
-          return b.photoCount - a.photoCount;
+          return b.photo_count - a.photo_count;
         case 'recently-updated':
-          return new Date(b.dateUpdated).getTime() - new Date(a.dateUpdated).getTime();
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
         default:
           return 0;
       }
     });
   };
-  
-  const handleCreateAlbum = (title: string, description: string, isPrivate: boolean) => {
-    const newAlbum = createAlbum(title, description, isPrivate);
-    
-    setAlbums(prevAlbums => {
-      const updatedAlbums = [...prevAlbums, newAlbum];
-      return updatedAlbums;
-    });
-    
-    toast.success('Album created', {
-      description: `"${title}" has been created successfully.`,
-      icon: <Check className="h-4 w-4" />,
-      position: 'bottom-right',
-    });
+
+  const handleCreateAlbum = async (title, description, isPrivate) => {
+    try {
+      const newAlbum = await createAlbum(title, description, isPrivate);
+      setAlbums(prev => [newAlbum, ...prev]);
+      
+      toast.success('Album created', {
+        description: `"${title}" has been created successfully.`,
+      });
+    } catch (error) {
+      toast.error('Failed to create album', {
+        description: error.message,
+      });
+    }
   };
-  
-  const handleUpdateAlbum = (albumId: number, updates: Partial<MyAlbum>) => {
-    const updatedAlbum = updateAlbumDetails(albumId, updates);
-    
-    if (updatedAlbum) {
-      setAlbums(prevAlbums => 
-        prevAlbums.map(album => 
+
+  const handleUpdateAlbum = async (albumId, updates) => {
+    try {
+      const updatedAlbum = await updateAlbum(albumId, updates);
+      
+      setAlbums(prev => 
+        prev.map(album => 
           album.id === albumId ? updatedAlbum : album
         )
       );
       
       toast.success('Album updated', {
         description: `"${updatedAlbum.title}" has been updated successfully.`,
-        icon: <Check className="h-4 w-4" />,
-        position: 'bottom-right',
+      });
+    } catch (error) {
+      toast.error('Failed to update album', {
+        description: error.message,
       });
     }
   };
-  
-  const handleDeleteAlbum = (albumId: number) => {
-    // In a real app, you'd make an API call to delete the album
-    const albumToDelete = albums.find(a => a.id === albumId);
-    
-    setAlbums(prevAlbums => 
-      prevAlbums.filter(album => album.id !== albumId)
-    );
-    
-    toast('Album deleted', {
-      description: albumToDelete ? `"${albumToDelete.title}" has been deleted.` : "The album has been deleted.",
-      icon: <AlertTriangle className="h-4 w-4" />,
-      position: 'bottom-right',
-    });
+
+  const handleDeleteAlbum = async (albumId) => {
+    try {
+      await deleteAlbum(albumId);
+      
+      setAlbums(prev => 
+        prev.filter(album => album.id !== albumId)
+      );
+      
+      toast('Album deleted', {
+        description: "The album has been deleted successfully.",
+      });
+    } catch (error) {
+      toast.error('Failed to delete album', {
+        description: error.message,
+      });
+    }
   };
-  
-  const handleAddPhotos = (albumId: number) => {
-    const album = getMyAlbumById(albumId);
+
+  const handleAddPhotos = (albumId) => {
+    const album = albums.find(a => a.id === albumId);
     if (album) {
       setSelectedAlbum(album);
       setIsUploadDialogOpen(true);
     }
   };
-  
-  const handleUploadComplete = () => {
-    if (selectedAlbum) {
-      // Simulate adding photos to the album
-      const photosAdded = Math.floor(Math.random() * 5) + 1;
-      const updatedAlbum = {
-        ...selectedAlbum,
-        photoCount: selectedAlbum.photoCount + photosAdded,
-        dateUpdated: new Date().toISOString().split('T')[0]
-      };
-      
-      setAlbums(prevAlbums => 
-        prevAlbums.map(album => 
-          album.id === selectedAlbum.id ? updatedAlbum : album
-        )
-      );
-      
-      toast.success('Upload complete', {
-        description: `${photosAdded} photos added to "${selectedAlbum.title}" successfully.`,
-        icon: <Check className="h-4 w-4" />,
-        position: 'bottom-right',
-      });
-    }
-  };
-  
+
   return (
     <div className="min-h-screen bg-photo-primary pb-16">
-      {/* Header section */}
       <MyAlbumsHeader
         albumCount={filteredAlbums.length}
         searchTerm={searchTerm}
         sortOption={sortOption}
         onSearchChange={setSearchTerm}
-        onSortChange={(value) => setSortOption(value as SortOption)}
+        onSortChange={setSortOption}
         onCreateAlbum={handleCreateAlbum}
       />
       
-      {/* Main content */}
       <Container className="mt-8">
-        {albums.length === 0 && !isLoading ? (
-          <MyAlbumsEmptyState 
-            onCreateAlbum={() => {
-              document.getElementById('create-album-dialog-trigger')?.click();
-            }} 
-          />
-        ) : (
-          <MyAlbumsGrid 
-            albums={filteredAlbums}
-            isLoading={isLoading}
-            searchTerm={searchTerm}
-            onCreateAlbum={() => {
-              document.getElementById('create-album-dialog-trigger')?.click();
-            }}
-            onUpdateAlbum={handleUpdateAlbum}
-            onDeleteAlbum={handleDeleteAlbum}
-            onAddPhotos={handleAddPhotos}
-          />
-        )}
+        <MyAlbumsGrid 
+          albums={filteredAlbums}
+          isLoading={isLoading}
+          searchTerm={searchTerm}
+          onCreateAlbum={() => {
+            document.getElementById('create-album-dialog-trigger')?.click();
+          }}
+          onUpdateAlbum={handleUpdateAlbum}
+          onDeleteAlbum={handleDeleteAlbum}
+          onAddPhotos={handleAddPhotos}
+        />
       </Container>
       
-      {/* Upload Photos Dialog */}
-      <UploadPhotosDialog 
-        isOpen={isUploadDialogOpen}
-        onClose={() => setIsUploadDialogOpen(false)}
-        album={selectedAlbum}
-        onUploadComplete={handleUploadComplete}
-      />
+      {selectedAlbum && (
+        <UploadPhotosDialog 
+          isOpen={isUploadDialogOpen}
+          onClose={() => setIsUploadDialogOpen(false)}
+          album={selectedAlbum}
+          onUploadComplete={() => {
+            fetchAlbums();
+            setIsUploadDialogOpen(false);
+          }}
+        />
+      )}
       
-      {/* Hidden trigger for create album dialog */}
       <button 
         id="create-album-dialog-trigger" 
         className="hidden"
         onClick={() => {
-          document.querySelector<HTMLButtonElement>('[data-dialog-trigger="create-album"]')?.click();
+          document.querySelector('[data-dialog-trigger="create-album"]')?.click();
         }}
       />
     </div>

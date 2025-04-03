@@ -1,38 +1,60 @@
+// app/(home)/home/page.tsx
+
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Container from '@/components/common/Container';
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { UserSearch } from '@/components/home/UserSearch';
 import { UserGrid } from '@/components/home/UserGrid';
-import { dummyUsers } from '@/data/dummy-users';
+import { supabase } from '@/lib/supabase/client';
 
 export default function HomePage() {
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*');
+        
+      if (!error && data) {
+        setUsers(data);
+      }
+      
+      setIsLoading(false);
+    }
+    
+    fetchUsers();
+  }, []);
 
   // Filter users based on search term
-  const filteredUsers = dummyUsers.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter(user => 
+    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="min-h-screen bg-photo-primary pb-16">
-      {/* Page header */}
       <HomeHeader />
 
-      {/* Users section */}
       <Container className="mt-8">
-        {/* Search */}
         <UserSearch 
           searchTerm={searchTerm} 
           setSearchTerm={setSearchTerm} 
           resultsCount={filteredUsers.length}
         />
 
-        {/* User grid */}
-        <UserGrid users={filteredUsers} searchTerm={searchTerm} />
+        <UserGrid 
+          users={filteredUsers} 
+          isLoading={isLoading} 
+          searchTerm={searchTerm}
+        />
       </Container>
     </div>
   );
