@@ -9,7 +9,9 @@ import { MyAlbumsGrid } from '@/components/my-albums/MyAlbumsGrid';
 import { UploadPhotosDialog } from '@/components/my-albums/UploadPhotosDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
-import { createAlbum, updateAlbum, deleteAlbum } from '@/lib/api';
+import { createAlbum} from '@/lib/api';
+// import { createAlbum, updateAlbum, deleteAlbum } from '@/lib/api';
+
 
 export default function MyAlbumsPage() {
   const [albums, setAlbums] = useState([]);
