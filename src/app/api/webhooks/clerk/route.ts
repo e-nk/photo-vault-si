@@ -1,21 +1,22 @@
 // File path: /app/api/webhooks/clerk/route.ts
 
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { headers, cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { headers, cookies } from 'next/headers';
 import { Webhook } from 'svix';
 import { WebhookEvent } from '@clerk/nextjs/server';
 
 export async function POST(req: NextRequest) {
   // Verify the webhook signature
-  const headersList = headers();
-  const svixId = headersList.get('svix-id');
-  const svixTimestamp = headersList.get('svix-timestamp');
-  const svixSignature = headersList.get('svix-signature');
+  const headerPayload = headers();
+  const svixId = headerPayload.get('svix-id');
+  const svixTimestamp = headerPayload.get('svix-timestamp');
+  const svixSignature = headerPayload.get('svix-signature');
   
   if (!svixId || !svixTimestamp || !svixSignature) {
+    console.error('Missing svix headers');
     return NextResponse.json(
-      { error: 'Missing Svix headers' },
+      { error: 'Missing svix headers' },
       { status: 400 }
     );
   }
@@ -54,63 +55,89 @@ export async function POST(req: NextRequest) {
   // Get the ID and type of the webhook event
   const eventType = evt.type;
   
-  // Initialize Supabase client
-  const supabase = createRouteHandlerClient({ cookies });
+  console.log(`Webhook received: ${eventType}`);
+  console.log('Webhook payload:', JSON.stringify(evt.data, null, 2));
+  
+  // Initialize Supabase admin client (with service role key)
+  const supabase = createRouteHandlerClient({ cookies }, {
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  });
   
   // Handle different webhook events
   try {
-    if (eventType === 'user.created') {
-      // A new user is created on Clerk
-      const { id, email_addresses, username, first_name, last_name, image_url } = evt.data;
-      
-      const primaryEmail = email_addresses?.[0]?.email_address;
-      
-      if (!primaryEmail) {
-        console.error('User created without email address');
-        return NextResponse.json(
-          { error: 'Invalid user data' },
-          { status: 400 }
-        );
-      }
-      
-      // Check if user already exists in Supabase
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('clerk_id', id)
-        .single();
-      
-      if (existingUser) {
-        console.log(`User ${id} already exists in Supabase`);
-        return NextResponse.json({ message: 'User already exists' });
-      }
-      
-      // Create user in Supabase
-      const { data, error } = await supabase
-        .from('users')
-        .insert([
-          {
-            clerk_id: id,
-            email: primaryEmail,
-            username: username || primaryEmail.split('@')[0],
-            full_name: `${first_name || ''} ${last_name || ''}`.trim(),
-            avatar_url: image_url,
-          }
-        ])
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating user in Supabase:', error);
-        return NextResponse.json(
-          { error: 'Error creating user' },
-          { status: 500 }
-        );
-      }
-      
-      console.log(`User ${id} created in Supabase`);
-      return NextResponse.json({ message: 'User created', data });
+    // Fix the username generation in the webhook handler
+if (eventType === 'user.created') {
+  // A new user is created on Clerk
+  const { id, email_addresses, username, first_name, last_name, image_url } = evt.data;
+  
+  const primaryEmail = email_addresses?.[0]?.email_address;
+  
+  if (!primaryEmail) {
+    console.error('User created without email address');
+    return NextResponse.json(
+      { error: 'Invalid user data' },
+      { status: 400 }
+    );
+  }
+  
+  // Check if user already exists in Supabase
+  const { data: existingUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('clerk_id', id)
+    .single();
+  
+  if (existingUser) {
+    console.log(`User ${id} already exists in Supabase`);
+    return NextResponse.json({ message: 'User already exists' });
+  }
+  
+  // Generate valid username
+  let validUsername = username;
+  if (!validUsername) {
+    // Take the part before @ and remove any characters that don't match the format constraint
+    validUsername = primaryEmail.split('@')[0].replace(/[^a-zA-Z0-9_\.]/g, '');
+    
+    // Ensure username is not empty after sanitization
+    if (!validUsername) {
+      validUsername = 'user';
     }
+  }
+  
+  // Ensure username meets length requirement (3-30 characters)
+  if (validUsername.length < 3) {
+    validUsername = validUsername.padEnd(3, '0');
+  } else if (validUsername.length > 30) {
+    validUsername = validUsername.substring(0, 30);
+  }
+  
+  // Create user in Supabase
+  const { data, error } = await supabase
+    .from('users')
+    .insert([
+      {
+        clerk_id: id,
+        email: primaryEmail,
+        username: validUsername,
+        full_name: `${first_name || ''} ${last_name || ''}`.trim(),
+        avatar_url: image_url,
+      }
+    ])
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('Error creating user in Supabase:', error);
+    return NextResponse.json(
+      { error: 'Error creating user', details: error },
+      { status: 500 }
+    );
+  }
+  
+  console.log(`User ${id} created in Supabase:`, data);
+  return NextResponse.json({ message: 'User created', data });
+}
     
     else if (eventType === 'user.updated') {
       // User data is updated on Clerk
@@ -134,6 +161,7 @@ export async function POST(req: NextRequest) {
           username: username || primaryEmail.split('@')[0],
           full_name: `${first_name || ''} ${last_name || ''}`.trim(),
           avatar_url: image_url,
+          updated_at: new Date().toISOString()
         })
         .eq('clerk_id', id)
         .select()
